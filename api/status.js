@@ -1,10 +1,10 @@
-let servoAction = false;
+let servoState = false;
 
 export default function handler(req, res) {
-  res.status(200).json({ rotate: servoAction });
+  res.status(200).json({ rotate: servoState });
 }
 
-// kita perlu ekspor fungsi untuk dipakai di rotate.js
+// fungsi untuk dipakai di rotate.js
 export function setServoState(state) {
-  servoAction = state;
+  servoState = state;
 }

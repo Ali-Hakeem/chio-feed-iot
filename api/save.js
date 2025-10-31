@@ -1,17 +1,14 @@
 import { supabase, reverseGeocode } from "./utils.js";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
     const { username, password, deviceName, latitude, longitude, ts } = req.body;
 
     if (!username || !password)
-      return res.status(401).json({ error: "Unauthorized: username & password required" });
+      return res.status(401).json({ error: "Username & password required" });
 
-    // validasi login dari tabel `login`
     const { data: user, error: userErr } = await supabase
       .from("login")
       .select("*")
@@ -20,12 +17,11 @@ export default async function handler(req, res) {
       .maybeSingle();
 
     if (userErr || !user)
-      return res.status(401).json({ error: "Unauthorized: invalid credentials" });
+      return res.status(401).json({ error: "Invalid credentials" });
 
     if (!deviceName || !latitude || !longitude)
       return res.status(400).json({ error: "Missing deviceName, latitude, or longitude" });
 
-    // konversi lat lon jadi alamat
     const address = await reverseGeocode(latitude, longitude);
 
     const record = {
@@ -38,16 +34,11 @@ export default async function handler(req, res) {
     };
 
     const { data, error } = await supabase.from("locations").insert(record).select();
-
     if (error) throw error;
 
-    return res.status(201).json({
-      ok: true,
-      user: username,
-      inserted: data[0],
-    });
+    return res.status(201).json({ ok: true, user: username, inserted: data[0] });
   } catch (err) {
-    console.error("API save error:", err);
+    console.error("Save error:", err);
     return res.status(500).json({ error: "Internal server error", details: err.message });
   }
 }

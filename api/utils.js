@@ -5,7 +5,6 @@ export const supabase = createClient(
   process.env.SUPABASE_KEY
 );
 
-// Opsional: reverse geocode (ambil alamat dari lat/lon)
 export async function reverseGeocode(lat, lon) {
   try {
     const res = await fetch(
@@ -15,6 +14,6 @@ export async function reverseGeocode(lat, lon) {
     return data.display_name || "Unknown location";
   } catch (e) {
     console.error("Reverse geocode failed:", e);
-    return null;
+    return "Unknown location";
   }
 }
