@@ -3,19 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <title>Login IoT</title>
-  <style>
-    body { font-family: sans-serif; background: #f5f6fa; display: flex; justify-content: center; align-items: center; height: 100vh; }
-    form { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 300px; }
-    input { width: 100%; margin-bottom: 1rem; padding: .5rem; border: 1px solid #ccc; border-radius: 5px; }
-    button { width: 100%; padding: .7rem; border: none; border-radius: 5px; background: #3498db; color: white; cursor: pointer; }
-  </style>
 </head>
 <body>
-  <form method="POST" action="/login">
-    <h2>Login IoT</h2>
-    <input type="text" name="username" placeholder="Username" required />
-    <input type="password" name="password" placeholder="Password" required />
+  <h2>Login</h2>
+  <form id="loginForm">
+    <input type="text" id="username" placeholder="Username" required />
+    <input type="password" id="password" placeholder="Password" required />
     <button type="submit">Login</button>
   </form>
+
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: username.value,
+          password: password.value,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) window.location = "/dashboard.html";
+      else alert("Login gagal!");
+    });
+  </script>
 </body>
 </html>
