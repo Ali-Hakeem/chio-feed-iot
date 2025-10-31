@@ -3,40 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ESP32 LED Control</title>
+  <title>ESP32 Servo Control</title>
   <style>
     body { font-family: sans-serif; text-align: center; margin-top: 100px; }
-    button { font-size: 20px; padding: 15px 30px; border: none; border-radius: 10px; cursor: pointer; }
-    .on { background-color: green; color: white; }
-    .off { background-color: red; color: white; }
+    button { font-size: 20px; padding: 15px 30px; border: none; border-radius: 10px; cursor: pointer; background: #0078ff; color: white; }
+    button:disabled { background: gray; cursor: not-allowed; }
   </style>
 </head>
 <body>
-  <h1>ESP32 LED Control</h1>
-  <button id="toggleBtn" class="off">Turn ON</button>
+  <h1>ESP32 Servo 360° Control</h1>
+  <button id="rotateBtn">Putar Servo 360°</button>
 
   <script>
-    const btn = document.getElementById("toggleBtn");
-    let ledState = false;
-
-    async function updateButton() {
-      const res = await fetch("/api/status");
-      const data = await res.json();
-      ledState = data.led;
-      btn.textContent = ledState ? "Turn OFF" : "Turn ON";
-      btn.className = ledState ? "on" : "off";
-    }
-
+    const btn = document.getElementById("rotateBtn");
     btn.addEventListener("click", async () => {
-      await fetch("/api/toggle", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ state: !ledState }),
-      });
-      updateButton();
+      btn.disabled = true;
+      btn.textContent = "Berputar...";
+      await fetch("/api/rotate", { method: "POST" });
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.textContent = "Putar Servo 360°";
+      }, 3000);
     });
-
-    updateButton();
   </script>
 </body>
 </html>
