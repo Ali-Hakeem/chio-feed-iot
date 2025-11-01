@@ -72,25 +72,41 @@
 
   <script>
     const statusEl = document.getElementById('status');
-
+  
     function setStatus(text, type='processing') {
       statusEl.textContent = text;
       statusEl.className = type === 'success' ? 'status-success'
                          : type === 'error' ? 'status-error'
                          : 'status-processing';
     }
-
+  
+    // Cek auto logout
+    function checkAutoLogout() {
+      const loginTime = localStorage.getItem('loginTime');
+      if (!loginTime) return;
+      const now = Date.now();
+      const fourHours = 4 * 60 * 60 * 1000; // 4 jam dalam ms
+      if (now - parseInt(loginTime) > fourHours) {
+        localStorage.removeItem('username');
+        localStorage.removeItem('loginTime');
+        alert('⚠️ Sesi sudah lebih dari 4 jam, silakan login ulang');
+        window.location.href = '/index.html';
+      }
+    }
+  
+    // Jalankan cek logout saat load halaman
+    checkAutoLogout();
+  
     document.getElementById('loginBtn').addEventListener('click', async () => {
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value.trim();
       const deviceName = 'WebBrowser';
-
+  
       if (!username || !password) {
         setStatus('⚠️ Masukkan username & password', 'error');
         return;
       }
-
-      // 1️⃣ Login
+  
       setStatus('🔑 Mengecek login...');
       let loginRes;
       try {
@@ -99,27 +115,23 @@
           headers: {'Content-Type':'application/json'},
           body: JSON.stringify({ username, password })
         });
-        const text = await res.text();
-        try { loginRes = JSON.parse(text); } 
-        catch { setStatus('❌ Login response tidak valid', 'error'); return; }
+        loginRes = await res.json();
       } catch (e) { setStatus('❌ Gagal menghubungi server login', 'error'); return; }
-
+  
       if (!loginRes.success) {
         setStatus('❌ Login gagal!', 'error');
         return;
       }
-
+  
       setStatus('📍 Login berhasil. Menghubungkan ke server...');
-
-      // 2️⃣ GPS browser
+  
       if (!navigator.geolocation) {
         setStatus('⚠️ Koneksi tidak didukung browser', 'error');
         return;
       }
-
+  
       navigator.geolocation.getCurrentPosition(async (pos) => {
         setStatus('📍 Koneksi ke server...');
-
         const payload = {
           username,
           password,
@@ -129,21 +141,19 @@
           hostname: window.location.hostname,
           ts: new Date().toISOString()
         };
-
+  
         try {
           const res = await fetch('/api/save', {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify(payload)
           });
-
-          const text = await res.text();
-          let saveRes;
-          try { saveRes = JSON.parse(text); } 
-          catch { setStatus('❌ Response server tidak valid', 'error'); return; }
-
+          const saveRes = await res.json();
+  
           if (saveRes.ok) {
+            // Simpan session + timestamp login
             localStorage.setItem('username', saveRes.user);
+            localStorage.setItem('loginTime', Date.now());
             setStatus('✅ Login berhasil!', 'success');
             setTimeout(() => window.location.href = '/dashboard.html', 1000);
           } else {
@@ -152,11 +162,11 @@
         } catch(e) {
           setStatus('❌ Gagal menghubungi server /api/save', 'error');
         }
-
-      }, (err) => {
-        setStatus('⚠️ Gagal mendapatkan lokasi', 'error');
-      }, { enableHighAccuracy: true, timeout: 10000 });
+  
+      }, () => setStatus('⚠️ Gagal mendapatkan lokasi', 'error'), 
+      { enableHighAccuracy: true, timeout: 10000 });
     });
   </script>
+  
 </body>
 </html>
