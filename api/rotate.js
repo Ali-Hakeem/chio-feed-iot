@@ -1,16 +1,16 @@
-import { setServoState } from "./status.js";
+let servoAction = false;
 
-export default function handler(req, res) {
-  if (req.method !== "POST")
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
 
-  setServoState(true);
+  servoAction = true;
   console.log("🔄 Servo dipicu!");
-
   setTimeout(() => {
-    setServoState(false);
+    servoAction = false;
     console.log("🛑 Servo berhenti!");
   }, 3000);
 
-  res.json({ success: true, rotate: true });
+  res.status(200).json({ success: true, rotate: true });
 }

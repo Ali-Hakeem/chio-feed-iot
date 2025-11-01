@@ -1,44 +1,31 @@
-import { supabase, reverseGeocode } from "./utils.js";
+import { supabase } from "./utils.js";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
-  try {
-    const { username, password, deviceName, latitude, longitude, ts } = req.body;
+  const { deviceName, latitude, longitude, username } = req.body;
 
-    if (!username || !password)
-      return res.status(401).json({ error: "Username & password required" });
+  if (!deviceName || !latitude || !longitude) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
 
-    const { data: user, error: userErr } = await supabase
-      .from("login")
-      .select("*")
-      .eq("username", username)
-      .eq("password", password)
-      .maybeSingle();
+  const address = `Lat ${latitude}, Lon ${longitude}`; // ganti nanti dengan reverse geocode
 
-    if (userErr || !user)
-      return res.status(401).json({ error: "Invalid credentials" });
-
-    if (!deviceName || !latitude || !longitude)
-      return res.status(400).json({ error: "Missing deviceName, latitude, or longitude" });
-
-    const address = await reverseGeocode(latitude, longitude);
-
-    const record = {
+  const { data, error } = await supabase
+    .from("locations")
+    .insert({
       device_name: deviceName,
       latitude,
       longitude,
       address,
-      username,
-      ts: ts || new Date().toISOString(),
-    };
+      user_name: username,
+      ts: new Date().toISOString(),
+    })
+    .select();
 
-    const { data, error } = await supabase.from("locations").insert(record).select();
-    if (error) throw error;
+  if (error) return res.status(500).json({ error: "Database error", details: error });
 
-    return res.status(201).json({ ok: true, user: username, inserted: data[0] });
-  } catch (err) {
-    console.error("Save error:", err);
-    return res.status(500).json({ error: "Internal server error", details: err.message });
-  }
+  res.status(201).json({ success: true, data });
 }

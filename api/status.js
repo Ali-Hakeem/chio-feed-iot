@@ -1,9 +1,10 @@
-let servoState = false;
+let servoAction = false;
 
-export default function handler(req, res) {
-  res.status(200).json({ rotate: servoState });
+export default async function handler(req, res) {
+  if (req.method === "GET") {
+    return res.status(200).json({ rotate: servoAction });
+  }
+  res.status(405).json({ error: "Method not allowed" });
 }
 
-export function setServoState(state) {
-  servoState = state;
-}
+export { servoAction };
