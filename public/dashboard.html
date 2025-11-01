@@ -1,25 +1,49 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Dashboard</title>
-  </head>
-  <body>
-    <h1>Dashboard IoT</h1>
-    <button id="rotateBtn">Putar Servo</button>
-    <p id="statusText"></p>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard IoT</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 50px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Dashboard IoT</h1>
+  <button id="rotateBtn">Putar Servo</button>
+  <p id="statusText"></p>
+  <button id="logoutBtn" style="margin-top:20px;">Logout</button>
 
-    <script>
-      document.getElementById("rotateBtn").addEventListener("click", async () => {
-        const res = await fetch("/api/rotate", { method: "POST" });
-        const data = await res.json();
-        if (data.success) {
-          document.getElementById("statusText").innerText = "Servo berputar...";
-          setTimeout(() => {
-            document.getElementById("statusText").innerText = "Servo berhenti.";
-          }, 3000);
-        }
-      });
-    </script>
-  </body>
+  <script>
+    // redirect kalau belum login
+    const user = localStorage.getItem("iotUser");
+    if (!user) {
+      window.location.href = "/";
+    }
+
+    document.getElementById("rotateBtn").addEventListener("click", async () => {
+      const res = await fetch("/api/rotate", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById("statusText").innerText = "🔄 Servo berputar...";
+        setTimeout(() => {
+          document.getElementById("statusText").innerText = "✅ Servo berhenti.";
+        }, 3000);
+      }
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      localStorage.removeItem("iotUser");
+      window.location.href = "/";
+    });
+  </script>
+</body>
 </html>
