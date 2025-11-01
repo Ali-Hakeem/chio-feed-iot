@@ -35,7 +35,7 @@ export default async function handler(req, res) {
 
     if (countErr) throw countErr;
 
-    if (loginCount >= 3) {
+    if (loginCount >= 4) {
       return res.status(403).json({ ok: false, error: "Maksimal login 3x per hari" });
     }
 
