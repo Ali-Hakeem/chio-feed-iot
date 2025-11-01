@@ -1,84 +1,84 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <title>Login - Chio Feed IoT</title>
-</head>
-<body>
-  <h2>Login Admin</h2>
-  <input id="username" placeholder="Username" required /><br><br>
-  <input id="password" type="password" placeholder="Password" required /><br><br>
-  <button id="loginBtn">Login & Save Location</button>
-  <pre id="status"></pre>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Login - Chio Feed IoT</title>
+  </head>
+  <body>
+    <h2>Login Admin</h2>
+    <form id="loginForm">
+      <input id="username" placeholder="Username" required /><br /><br />
+      <input id="password" type="password" placeholder="Password" required /><br /><br />
+      <button type="submit">Login</button>
+    </form>
 
-  <script>
-    const statusEl = document.getElementById('status');
-    const usernameEl = document.getElementById('username');
-    const passwordEl = document.getElementById('password');
-
-    document.getElementById('loginBtn').addEventListener('click', async () => {
-      const username = usernameEl.value.trim();
-      const password = passwordEl.value.trim();
-      const deviceName = 'WebBrowser'; // Nama device default
-
-      if (!username || !password) {
-        statusEl.textContent = '⚠️ Username & password wajib diisi';
-        return;
-      }
-
-      if (!navigator.geolocation) {
-        statusEl.textContent = '⚠️ Geolocation tidak didukung browser';
-        return;
-      }
-
-      statusEl.textContent = '📍 Mengambil lokasi GPS...';
-
-      navigator.geolocation.getCurrentPosition(async (pos) => {
-        const latitude = pos.coords.latitude;
-        const longitude = pos.coords.longitude;
-        statusEl.textContent = `📍 Lokasi ditemukan: ${latitude}, ${longitude}\nMenyimpan ke server...`;
-
-        const payload = {
-          username,
-          password,
-          deviceName,
-          latitude,
-          longitude,
-          hostname: window.location.hostname,
-          ts: new Date().toISOString()
-        };
-
-        try {
-          const res = await fetch('/api/savejs', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify(payload)
-          });
-
-          let data;
-          try {
-            data = await res.json();
-          } catch {
-            const text = await res.text();
-            statusEl.textContent = '❌ Response server tidak valid JSON:\n' + text;
-            return;
-          }
-
-          if (data.ok) {
-            localStorage.setItem('username', data.user);
-            statusEl.textContent = '✅ Login & lokasi tersimpan!\n' + JSON.stringify(data.inserted, null, 2);
-            window.location.href = '/dashboard.html';
-          } else {
-            statusEl.textContent = '❌ Login gagal atau data tidak valid:\n' + JSON.stringify(data);
-          }
-        } catch (e) {
-          statusEl.textContent = '❌ Gagal menghubungi server: ' + e;
+    <script>
+      const statusEl = document.getElementById('status');
+      document.getElementById('loginBtn').addEventListener('click', async () => {
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value.trim();
+        const deviceName = 'WebBrowser';
+      
+        if (!username || !password) {
+          statusEl.textContent = '⚠️ Username & password wajib diisi';
+          return;
         }
-
-      }, (err) => {
-        statusEl.textContent = '⚠️ Gagal mendapatkan lokasi: ' + err.message;
-      }, { enableHighAccuracy: true, timeout: 10000 });
-    });
-  </script>
-</body>
+      
+        if (!navigator.geolocation) {
+          statusEl.textContent = '⚠️ Geolocation tidak didukung browser';
+          return;
+        }
+      
+        statusEl.textContent = '📍 Mengambil lokasi GPS...';
+      
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+          const latitude = pos.coords.latitude;
+          const longitude = pos.coords.longitude;
+          statusEl.textContent = `📍 Lokasi ditemukan: ${latitude}, ${longitude}\nMenyimpan ke server...`;
+      
+          const payload = {
+            username, password, deviceName,
+            latitude, longitude,
+            hostname: window.location.hostname,
+            ts: new Date().toISOString()
+          };
+      
+          try {
+            const res = await fetch('/api/savejs', {
+              method: 'POST',
+              headers: {'Content-Type':'application/json'},
+              body: JSON.stringify(payload)
+            });
+      
+            // Baca body sekali saja
+            const text = await res.text();
+      
+            let data;
+            try {
+              data = JSON.parse(text);
+            } catch {
+              statusEl.textContent = '❌ Response server tidak valid JSON:\n' + text;
+              return;
+            }
+      
+            if (data.ok) {
+              localStorage.setItem('username', data.user);
+              statusEl.textContent = '✅ Login & lokasi tersimpan!\n' + JSON.stringify(data.inserted, null, 2);
+              window.location.href = '/dashboard.html';
+            } else {
+              statusEl.textContent = '❌ Login gagal atau data tidak valid:\n' + JSON.stringify(data);
+            }
+      
+          } catch (e) {
+            statusEl.textContent = '❌ Gagal menghubungi server: ' + e;
+          }
+      
+        }, (err) => {
+          statusEl.textContent = '⚠️ Gagal mendapatkan lokasi: ' + err.message;
+        }, { enableHighAccuracy: true, timeout: 10000 });
+      });
+      </script>
+      
+    
+  </body>
 </html>
