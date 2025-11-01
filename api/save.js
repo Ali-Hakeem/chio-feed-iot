@@ -1,8 +1,7 @@
 import { supabase, reverseGeocode } from "./utils.js";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST")
-    return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
     const { username, password, deviceName, latitude, longitude, ts } = req.body;
@@ -21,7 +20,7 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: "Invalid credentials" });
 
     if (!deviceName || !latitude || !longitude)
-      return res.status(400).json({ error: "Missing parameters" });
+      return res.status(400).json({ error: "Missing deviceName, latitude, or longitude" });
 
     const address = await reverseGeocode(latitude, longitude);
 

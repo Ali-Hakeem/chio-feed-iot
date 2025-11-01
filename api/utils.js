@@ -1,8 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
 // === Supabase client setup ===
-// Pastikan di Vercel ada Environment Variables:
-// SUPABASE_URL, SUPABASE_KEY
 export const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
@@ -19,9 +17,6 @@ export async function reverseGeocode(lat, lon) {
         },
       }
     );
-
-    if (!res.ok) throw new Error("HTTP error " + res.status);
-
     const data = await res.json();
     return data.display_name || "Unknown location";
   } catch (e) {
@@ -30,35 +25,23 @@ export async function reverseGeocode(lat, lon) {
   }
 }
 
-// === Fungsi untuk ambil status servo ===
+// === Fungsi untuk ambil & update status servo ===
 export async function getServoStatus() {
-  try {
-    const { data, error } = await supabase
-      .from("servo_status")
-      .select("rotate")
-      .eq("id", 1)
-      .single();
+  const { data, error } = await supabase
+    .from("servo_status")
+    .select("rotate")
+    .eq("id", 1)
+    .single();
 
-    if (error) throw error;
-    return data?.rotate || false;
-  } catch (err) {
-    console.error("getServoStatus error:", err);
-    throw err;
-  }
+  if (error) throw error;
+  return data?.rotate || false;
 }
 
-// === Fungsi untuk update status servo ===
 export async function setServoStatus(value) {
-  try {
-    const { error } = await supabase
-      .from("servo_status")
-      .update({ rotate: value })
-      .eq("id", 1);
+  const { error } = await supabase
+    .from("servo_status")
+    .update({ rotate: value })
+    .eq("id", 1);
 
-    if (error) throw error;
-    return true;
-  } catch (err) {
-    console.error("setServoStatus error:", err);
-    throw err;
-  }
+  if (error) throw error;
 }

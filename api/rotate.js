@@ -6,17 +6,24 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Aktifkan servo
     await setServoStatus(true);
-    console.log("🔄 Servo dinyalakan!");
+    console.log("✅ Servo ON");
+
+    // Kirim respon ke client dulu
     res.status(200).json({ success: true, rotate: true });
 
-    // Otomatis reset ke false setelah 3 detik
+    // Nonaktifkan servo setelah 3 detik
     setTimeout(async () => {
-      await setServoStatus(false);
-      console.log("🛑 Servo dimatikan!");
+      try {
+        await setServoStatus(false);
+        console.log("🛑 Servo OFF");
+      } catch (err) {
+        console.error("Gagal mematikan servo:", err.message);
+      }
     }, 3000);
   } catch (error) {
-    console.error("Rotate error:", error);
+    console.error("Error updating servo:", error.message);
     res.status(500).json({ error: error.message });
   }
 }
