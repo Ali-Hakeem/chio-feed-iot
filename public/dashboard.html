@@ -1,31 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Dashboard IoT</title>
-  </head>
-  <body>
-    <h1>Dashboard IoT</h1>
-    <button id="rotateBtn">Putar Servo</button>
-    <button id="logoutBtn">Logout</button>
-    <p id="statusText"></p>
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard</title>
+</head>
+<body>
+  <h1>Dashboard IoT</h1>
+  <button id="rotateBtn">Putar Servo</button>
+  <p id="statusText"></p>
+  <button id="logoutBtn">Logout</button>
 
-    <script>
-      document.getElementById("rotateBtn").addEventListener("click", async () => {
-        const res = await fetch("/api/rotate", { method: "POST" });
-        const data = await res.json();
-        if (data.success) {
-          document.getElementById("statusText").innerText = "Servo berputar...";
-          setTimeout(() => {
-            document.getElementById("statusText").innerText = "Servo berhenti.";
-          }, 3000);
-        }
-      });
+  <script>
+    // 🚫 Cegah akses langsung tanpa login
+    if (localStorage.getItem("auth") !== "true") {
+      window.location.href = "/index.html";
+    }
 
-      document.getElementById("logoutBtn").addEventListener("click", async () => {
-        await fetch("/api/logout");
-        window.location.href = "/";
-      });
-    </script>
-  </body>
+    document.getElementById("rotateBtn").addEventListener("click", async () => {
+      const res = await fetch("/api/rotate", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById("statusText").innerText = "Servo berputar...";
+        setTimeout(() => {
+          document.getElementById("statusText").innerText = "Servo berhenti.";
+        }, 3000);
+      }
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await fetch("/api/logout");
+      localStorage.removeItem("auth");
+      window.location.href = "/index.html";
+    });
+  </script>
+</body>
 </html>
