@@ -22,6 +22,26 @@ export default async function handler(req, res) {
     if (!deviceName || !latitude || !longitude)
       return res.status(400).json({ error: "Missing deviceName, latitude, or longitude" });
 
+    // ================================
+    // Cek jumlah login hari ini (maks 3x)
+    // ================================
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const { count: loginCount, error: countErr } = await supabase
+      .from("locations")
+      .select("*", { count: "exact" })
+      .eq("username", username)
+      .gte("ts", `${today}T00:00:00Z`)
+      .lte("ts", `${today}T23:59:59Z`);
+
+    if (countErr) throw countErr;
+
+    if (loginCount >= 3) {
+      return res.status(403).json({ ok: false, error: "Maksimal login 3x per hari" });
+    }
+
+    // ================================
+    // Simpan lokasi
+    // ================================
     const address = await reverseGeocode(latitude, longitude);
 
     const record = {
