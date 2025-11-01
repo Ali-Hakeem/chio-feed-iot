@@ -1,5 +1,9 @@
+let servoState = false;
+
 export default function handler(req, res) {
-    res.setHeader("Set-Cookie", "session=; Path=/; Max-Age=0");
-    res.json({ success: true });
-  }
-  
+  res.status(200).json({ rotate: servoState });
+}
+
+export function setServoState(state) {
+  servoState = state;
+}

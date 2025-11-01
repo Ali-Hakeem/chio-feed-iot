@@ -1,29 +1,41 @@
-<script>
-  document.getElementById("loginForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Login IoT</title>
+  </head>
+  <body>
+    <h2>Login</h2>
+    <form id="loginForm">
+      <input type="text" id="username" placeholder="Username" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+    </form>
 
-    try {
-      const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+    <script>
+      const form = document.getElementById("loginForm");
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        try {
+          const res = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+
+          const data = await res.json();
+          if (data.success) {
+            window.location.href = "/dashboard.html";
+          } else {
+            alert("Login gagal!");
+          }
+        } catch {
+          alert("⚠️ Gagal menghubungi server.");
+        }
       });
-
-      console.log("Response:", res);
-      const data = await res.json();
-      console.log("Data:", data);
-
-      if (data.success) {
-        localStorage.setItem("user", data.user);
-        window.location.href = "/dashboard.html";
-      } else {
-        alert("Login gagal!");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("⚠️ Gagal menghubungi server.");
-    }
-  });
-</script>
+    </script>
+  </body>
+</html>

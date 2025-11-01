@@ -1,16 +1,8 @@
 {
   "name": "chio-feed-iot",
   "version": "1.0.0",
-  "main": "index.js",
   "type": "module",
-  "scripts": {
-    "start": "NODE_ENV=development node index.js"
-  },
   "dependencies": {
-    "@supabase/supabase-js": "^2.43.1",
-    "body-parser": "^1.20.3",
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "express-session": "^1.17.3"
+    "@supabase/supabase-js": "^2.43.1"
   }
 }
