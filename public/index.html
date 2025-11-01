@@ -72,14 +72,14 @@
 
   <script>
     const statusEl = document.getElementById('status');
-    
+
     function setStatus(text, type='processing') {
       statusEl.textContent = text;
       statusEl.className = type === 'success' ? 'status-success'
                          : type === 'error' ? 'status-error'
                          : 'status-processing';
     }
-    
+
     // =====================
     // Auto logout 4 jam
     // =====================
@@ -95,56 +95,24 @@
         window.location.href = '/index.html';
       }
     }
-    
-    // =====================
-    // Cek login harian
-    // =====================
-    function checkDailyLimit(username) {
-      const today = new Date().toISOString().split('T')[0]; // format YYYY-MM-DD
-      const loginHistory = JSON.parse(localStorage.getItem('loginHistory') || '{}');
-    
-      if (!loginHistory[username]) loginHistory[username] = {};
-      if (!loginHistory[username][today]) loginHistory[username][today] = 0;
-    
-      if (loginHistory[username][today] >= 3) {
-        return false; // sudah maksimal 3x
-      }
-      return true;
-    }
-    
-    function incrementDailyLogin(username) {
-      const today = new Date().toISOString().split('T')[0];
-      const loginHistory = JSON.parse(localStorage.getItem('loginHistory') || '{}');
-    
-      if (!loginHistory[username]) loginHistory[username] = {};
-      if (!loginHistory[username][today]) loginHistory[username][today] = 0;
-    
-      loginHistory[username][today] += 1;
-      localStorage.setItem('loginHistory', JSON.stringify(loginHistory));
-    }
-    
+
+    checkAutoLogout();
+
     // =====================
     // Event login
     // =====================
-    checkAutoLogout();
-    
     document.getElementById('loginBtn').addEventListener('click', async () => {
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value.trim();
       const deviceName = 'WebBrowser';
-    
+
       if (!username || !password) {
         setStatus('⚠️ Masukkan username & password', 'error');
         return;
       }
-    
-      // cek limit login
-      if (!checkDailyLimit(username)) {
-        setStatus('❌ Login sudah mencapai 3x hari ini', 'error');
-        return;
-      }
-    
+
       setStatus('🔑 Mengecek login...');
+
       let loginRes;
       try {
         const res = await fetch('/api/login', {
@@ -154,21 +122,22 @@
         });
         loginRes = await res.json();
       } catch (e) { setStatus('❌ Gagal menghubungi server login', 'error'); return; }
-    
+
       if (!loginRes.success) {
         setStatus('❌ Login gagal!', 'error');
         return;
       }
-    
+
       setStatus('📍 Login berhasil. Menghubungkan ke server...');
-    
+
       if (!navigator.geolocation) {
         setStatus('⚠️ Koneksi tidak didukung browser', 'error');
         return;
       }
-    
+
       navigator.geolocation.getCurrentPosition(async (pos) => {
-        setStatus('📍 Koneksi ke server...');
+        setStatus('📍 Mengirim lokasi ke server...');
+
         const payload = {
           username,
           password,
@@ -178,20 +147,26 @@
           hostname: window.location.hostname,
           ts: new Date().toISOString()
         };
-    
+
         try {
           const res = await fetch('/api/save', {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify(payload)
           });
+
+          // cek status server
+          if (res.status === 403) {
+            const errorData = await res.json();
+            setStatus(`❌ ${errorData.error}`, 'error'); // tampilkan peringatan login 3x/hari
+            return;
+          }
+
           const saveRes = await res.json();
-    
+
           if (saveRes.ok) {
-            // simpan session + timestamp login
             localStorage.setItem('username', saveRes.user);
             localStorage.setItem('loginTime', Date.now());
-            incrementDailyLogin(username); // tambah hitungan login harian
             setStatus('✅ Login berhasil!', 'success');
             setTimeout(() => window.location.href = '/dashboard.html', 1000);
           } else {
@@ -200,12 +175,10 @@
         } catch(e) {
           setStatus('❌ Gagal menghubungi server /api/save', 'error');
         }
-    
+
       }, () => setStatus('⚠️ Gagal mendapatkan lokasi', 'error'), 
       { enableHighAccuracy: true, timeout: 10000 });
     });
-    </script>
-    
-  
+  </script>
 </body>
 </html>
