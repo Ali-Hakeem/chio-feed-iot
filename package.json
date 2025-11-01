@@ -1,8 +1,10 @@
 {
   "name": "chio-feed-iot",
   "version": "1.0.0",
+  "main": "api/login.js",
   "type": "module",
   "dependencies": {
-    "@supabase/supabase-js": "^2.43.1"
+    "@supabase/supabase-js": "^2.43.1",
+    "node-fetch": "^3.3.2"
   }
 }
