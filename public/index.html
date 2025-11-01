@@ -13,56 +13,66 @@
   <pre id="status"></pre>
 
   <script>
-    document.getElementById('loginBtn').addEventListener('click', async () => {
-      const status = document.getElementById('status');
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
-      const deviceName = 'WebBrowser'; // nama device default
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const status = document.getElementById('status');
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  const deviceName = 'WebBrowser';
 
-      if (!navigator.geolocation) {
-        status.textContent = '⚠️ Geolocation not supported';
+  if (!navigator.geolocation) {
+    status.textContent = '⚠️ Geolocation not supported';
+    return;
+  }
+
+  status.textContent = '📍 Getting location...';
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const lat = pos.coords.latitude;
+    const lon = pos.coords.longitude;
+    status.textContent = `📍 Got ${lat}, ${lon} — saving...`;
+
+    const payload = {
+      username,
+      password,
+      deviceName,
+      latitude: lat,
+      longitude: lon,
+      hostname: window.location.hostname,
+      ts: new Date().toISOString()
+    };
+
+    try {
+      const res = await fetch('/api/savejs', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        const text = await res.text();
+        status.textContent = '❌ Response not JSON:\n' + text;
         return;
       }
 
-      status.textContent = '📍 Getting location...';
-      navigator.geolocation.getCurrentPosition(async (pos) => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        status.textContent = `📍 Got ${lat}, ${lon} — saving...`;
+      if (data.ok) {
+        localStorage.setItem('username', data.user);
+        status.textContent = '✅ Login & location saved!\n' + JSON.stringify(data.inserted, null, 2);
+        window.location.href = '/dashboard.html';
+      } else {
+        status.textContent = '❌ Login gagal atau data salah:\n' + JSON.stringify(data);
+      }
 
-        const payload = {
-          username,
-          password,
-          deviceName,
-          latitude: lat,
-          longitude: lon,
-          hostname: window.location.hostname,
-          ts: new Date().toISOString()
-        };
+    } catch (e) {
+      status.textContent = '❌ Send error: ' + e;
+    }
 
-        try {
-          const res = await fetch('/api/savejs', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify(payload)
-          });
-          const data = await res.json();
+  }, (err) => {
+    status.textContent = '⚠️ Geolocation error: ' + err.message;
+  }, { enableHighAccuracy: true, timeout: 10000 });
+});
 
-          if (data.ok) {
-            localStorage.setItem('username', data.user);
-            status.textContent = '✅ Login & location saved successfully!\n' + JSON.stringify(data.inserted, null, 2);
-            // Redirect ke dashboard
-            window.location.href = '/dashboard.html';
-          } else {
-            status.textContent = '❌ Login failed or data invalid: ' + JSON.stringify(data);
-          }
-        } catch (e) {
-          status.textContent = '❌ Send error: ' + e;
-        }
-      }, (err) => {
-        status.textContent = '⚠️ Geolocation error: ' + err.message;
-      }, { enableHighAccuracy: true, timeout: 10000 });
-    });
   </script>
 </body>
 </html>
