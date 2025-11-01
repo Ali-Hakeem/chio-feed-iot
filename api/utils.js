@@ -6,7 +6,7 @@ export const supabase = createClient(
   process.env.SUPABASE_KEY
 );
 
-// === Fungsi reverse geocode (opsional untuk data lokasi ESP32) ===
+// === Helper untuk reverse geocode (bisa dipakai di API lain) ===
 export async function reverseGeocode(lat, lon) {
   try {
     const res = await fetch(
@@ -18,20 +18,14 @@ export async function reverseGeocode(lat, lon) {
       }
     );
     const data = await res.json();
-
-    if (!res.ok || !data.display_name) {
-      console.warn("Reverse geocode response missing display_name:", data);
-      return "Unknown location";
-    }
-
-    return data.display_name;
+    return data.display_name || "Unknown location";
   } catch (e) {
     console.error("Reverse geocode failed:", e);
     return "Unknown location";
   }
 }
 
-// === Fungsi helper untuk update dan baca status servo ===
+// === Fungsi untuk ambil & update status servo ===
 export async function getServoStatus() {
   const { data, error } = await supabase
     .from("servo_status")
@@ -48,5 +42,6 @@ export async function setServoStatus(value) {
     .from("servo_status")
     .update({ rotate: value })
     .eq("id", 1);
+
   if (error) throw error;
 }

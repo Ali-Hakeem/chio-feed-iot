@@ -1,4 +1,4 @@
-import { supabase } from "./utils.js";
+import { setServoStatus } from "./utils.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -6,19 +6,24 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Nyalakan servo (true)
-    await supabase.from("servo_status").update({ rotate: true }).eq("id", 1);
-    console.log("🔄 Servo dinyalakan!");
+    // Aktifkan servo
+    await setServoStatus(true);
+    console.log("✅ Servo ON");
 
-    // Kirim respon langsung ke client
+    // Kirim respon ke client dulu
     res.status(200).json({ success: true, rotate: true });
 
-    // Setelah 3 detik, matikan servo (false)
+    // Nonaktifkan servo setelah 3 detik
     setTimeout(async () => {
-      await supabase.from("servo_status").update({ rotate: false }).eq("id", 1);
-      console.log("🛑 Servo dimatikan!");
+      try {
+        await setServoStatus(false);
+        console.log("🛑 Servo OFF");
+      } catch (err) {
+        console.error("Gagal mematikan servo:", err.message);
+      }
     }, 3000);
   } catch (error) {
+    console.error("Error updating servo:", error.message);
     res.status(500).json({ error: error.message });
   }
 }
