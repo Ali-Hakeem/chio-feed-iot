@@ -25,14 +25,13 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username, password }),
           });
-
           const data = await res.json();
           if (data.success) {
             window.location.href = "/dashboard.html";
           } else {
             alert("Login gagal!");
           }
-        } catch {
+        } catch (err) {
           alert("⚠️ Gagal menghubungi server.");
         }
       });
