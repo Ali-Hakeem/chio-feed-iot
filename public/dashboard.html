@@ -11,19 +11,40 @@
     <p id="statusText"></p>
 
     <script>
+      // === AUTH GUARD ===
+      // Jika user belum login, redirect ke halaman login
+      const user = localStorage.getItem("username");
+      if (!user) {
+        alert("🚫 Anda belum login!");
+        window.location.href = "/";
+      }
+
+      // === FUNGSI TOMBOL PUTAR ===
       document.getElementById("rotateBtn").addEventListener("click", async () => {
-        const res = await fetch("/api/rotate", { method: "POST" });
-        const data = await res.json();
-        if (data.success) {
-          document.getElementById("statusText").innerText = "Servo berputar...";
-          setTimeout(() => {
-            document.getElementById("statusText").innerText = "Servo berhenti.";
-          }, 3000);
+        try {
+          const res = await fetch("/api/rotate", { method: "POST" });
+          const data = await res.json();
+
+          if (data.success) {
+            document.getElementById("statusText").innerText = "Servo berputar...";
+            setTimeout(() => {
+              document.getElementById("statusText").innerText = "Servo berhenti.";
+            }, 3000);
+          } else {
+            alert("Gagal memutar servo!");
+          }
+        } catch (err) {
+          alert("⚠️ Tidak bisa menghubungi server.");
         }
       });
 
+      // === FUNGSI LOGOUT ===
       document.getElementById("logoutBtn").addEventListener("click", async () => {
-        await fetch("/api/logout");
+        try {
+          await fetch("/api/logout");
+        } catch (e) {}
+        // hapus data login
+        localStorage.removeItem("username");
         window.location.href = "/";
       });
     </script>
