@@ -27,7 +27,12 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // === Login middleware ===
 function requireLogin(req, res, next) {
-  if (!req.session.user) return res.redirect("/login");
+  if (!req.session.user) {
+    if (req.originalUrl.startsWith("/api")) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    return res.redirect("/login");
+  }
   next();
 }
 
@@ -36,10 +41,15 @@ let servoAction = false;
 
 // === ROUTES ===
 app.get(["/", "/login"], (req, res) => {
+  // jika sudah login, langsung ke dashboard
+  if (req.session.user) {
+    return res.redirect("/dashboard.html");
+  }
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-app.post("/login", async (req, res) => {
+// === API LOGIN ===
+app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
 
   const { data, error } = await supabase
@@ -50,13 +60,15 @@ app.post("/login", async (req, res) => {
     .single();
 
   if (error || !data) {
-    return res.status(401).send("<h3>Login gagal. <a href='/login'>Coba lagi</a></h3>");
+    console.log("Login gagal untuk", username);
+    return res.status(401).json({ success: false, message: "Login gagal" });
   }
 
   req.session.user = { username: data.username, role: data.role };
-  res.redirect("/dashboard.html");
+  res.json({ success: true });
 });
 
+// === LOGOUT ===
 app.get("/logout", (req, res) => {
   req.session.destroy(() => res.redirect("/login"));
 });
@@ -80,5 +92,13 @@ app.post("/api/rotate", requireLogin, (req, res) => {
 // === API simpan lokasi ===
 app.post("/api/save", requireLogin, saveLocation);
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+// === Export (agar bisa dipakai di Vercel) ===
+export default app;
+
+// === Hanya aktif saat dijalankan lokal ===
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () =>
+    console.log(`✅ Server running locally on http://localhost:${PORT}`)
+  );
+}
