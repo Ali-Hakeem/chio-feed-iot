@@ -1,17 +1,14 @@
 {
   "name": "chio-feed-iot",
   "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "type": "module",
+  "main": "api/index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step required'",
+    "start": "vercel start"
+  },
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
     "@supabase/supabase-js": "^2.43.1"
   }
 }
