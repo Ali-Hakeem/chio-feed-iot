@@ -72,20 +72,22 @@
 
   <script>
     const statusEl = document.getElementById('status');
-  
+    
     function setStatus(text, type='processing') {
       statusEl.textContent = text;
       statusEl.className = type === 'success' ? 'status-success'
                          : type === 'error' ? 'status-error'
                          : 'status-processing';
     }
-  
-    // Cek auto logout
+    
+    // =====================
+    // Auto logout 4 jam
+    // =====================
     function checkAutoLogout() {
       const loginTime = localStorage.getItem('loginTime');
       if (!loginTime) return;
       const now = Date.now();
-      const fourHours = 4 * 60 * 60 * 1000; // 4 jam dalam ms
+      const fourHours = 4 * 60 * 60 * 1000; // 4 jam
       if (now - parseInt(loginTime) > fourHours) {
         localStorage.removeItem('username');
         localStorage.removeItem('loginTime');
@@ -93,20 +95,55 @@
         window.location.href = '/index.html';
       }
     }
-  
-    // Jalankan cek logout saat load halaman
+    
+    // =====================
+    // Cek login harian
+    // =====================
+    function checkDailyLimit(username) {
+      const today = new Date().toISOString().split('T')[0]; // format YYYY-MM-DD
+      const loginHistory = JSON.parse(localStorage.getItem('loginHistory') || '{}');
+    
+      if (!loginHistory[username]) loginHistory[username] = {};
+      if (!loginHistory[username][today]) loginHistory[username][today] = 0;
+    
+      if (loginHistory[username][today] >= 3) {
+        return false; // sudah maksimal 3x
+      }
+      return true;
+    }
+    
+    function incrementDailyLogin(username) {
+      const today = new Date().toISOString().split('T')[0];
+      const loginHistory = JSON.parse(localStorage.getItem('loginHistory') || '{}');
+    
+      if (!loginHistory[username]) loginHistory[username] = {};
+      if (!loginHistory[username][today]) loginHistory[username][today] = 0;
+    
+      loginHistory[username][today] += 1;
+      localStorage.setItem('loginHistory', JSON.stringify(loginHistory));
+    }
+    
+    // =====================
+    // Event login
+    // =====================
     checkAutoLogout();
-  
+    
     document.getElementById('loginBtn').addEventListener('click', async () => {
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value.trim();
       const deviceName = 'WebBrowser';
-  
+    
       if (!username || !password) {
         setStatus('⚠️ Masukkan username & password', 'error');
         return;
       }
-  
+    
+      // cek limit login
+      if (!checkDailyLimit(username)) {
+        setStatus('❌ Login sudah mencapai 3x hari ini', 'error');
+        return;
+      }
+    
       setStatus('🔑 Mengecek login...');
       let loginRes;
       try {
@@ -117,19 +154,19 @@
         });
         loginRes = await res.json();
       } catch (e) { setStatus('❌ Gagal menghubungi server login', 'error'); return; }
-  
+    
       if (!loginRes.success) {
         setStatus('❌ Login gagal!', 'error');
         return;
       }
-  
+    
       setStatus('📍 Login berhasil. Menghubungkan ke server...');
-  
+    
       if (!navigator.geolocation) {
         setStatus('⚠️ Koneksi tidak didukung browser', 'error');
         return;
       }
-  
+    
       navigator.geolocation.getCurrentPosition(async (pos) => {
         setStatus('📍 Koneksi ke server...');
         const payload = {
@@ -141,7 +178,7 @@
           hostname: window.location.hostname,
           ts: new Date().toISOString()
         };
-  
+    
         try {
           const res = await fetch('/api/save', {
             method: 'POST',
@@ -149,11 +186,12 @@
             body: JSON.stringify(payload)
           });
           const saveRes = await res.json();
-  
+    
           if (saveRes.ok) {
-            // Simpan session + timestamp login
+            // simpan session + timestamp login
             localStorage.setItem('username', saveRes.user);
             localStorage.setItem('loginTime', Date.now());
+            incrementDailyLogin(username); // tambah hitungan login harian
             setStatus('✅ Login berhasil!', 'success');
             setTimeout(() => window.location.href = '/dashboard.html', 1000);
           } else {
@@ -162,11 +200,12 @@
         } catch(e) {
           setStatus('❌ Gagal menghubungi server /api/save', 'error');
         }
-  
+    
       }, () => setStatus('⚠️ Gagal mendapatkan lokasi', 'error'), 
       { enableHighAccuracy: true, timeout: 10000 });
     });
-  </script>
+    </script>
+    
   
 </body>
 </html>
