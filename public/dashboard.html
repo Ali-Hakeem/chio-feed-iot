@@ -101,10 +101,10 @@
 </head>
 <body>
   <div id="servoStatus" class="inactive">Servo: tidak aktif</div>
+  <div><button id="emergencyBtn" class="inactive">🔴 Tombol Darurat</button></div>
 
   <h1>Dashboard IoT</h1>
   <button id="rotateBtn">Putar Servo</button>
-  <button id="emergencyBtn">🔴 Tombol Darurat</button>
   <button id="logoutBtn">Logout</button>
   <div id="statusText" class="status-processing"></div>
 
@@ -159,14 +159,14 @@
     // === FUNGSI AUTO RESET (15 DETIK) ===
     async function autoResetAfterDelay() {
       console.log("⏳ Menunggu 15 detik sebelum auto reset...");
-      await new Promise(r => setTimeout(r, 15000));
+      await new Promise(r => setTimeout(r, 25000));
 
       try {
         const res = await fetch("/api/rotate-reset", { method: "POST" });
         const data = await res.json();
         if (data.success) {
           console.log("✅ Auto reset berhasil!");
-          setStatus("✅ Servo otomatis reset setelah 15 detik.", "success");
+          setStatus("✅ Servo otomatis reset setelah 25 detik.", "success");
           updateServoStatus();
         } else {
           console.warn("⚠️ Gagal auto reset:", data);
