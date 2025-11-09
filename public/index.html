@@ -1,120 +1,184 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Dashboard IoT</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        margin: 0;
-        background-color: #f5f5f5;
+<head>
+  <meta charset="UTF-8">
+  <title>Login - Chio Feed IoT</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: #f5f5f5;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    input {
+      width: 250px;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    button {
+      width: 270px;
+      padding: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #status {
+      margin-top: 20px;
+      width: 300px;
+      min-height: 50px;
+      padding: 10px;
+      border-radius: 5px;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      color: #333;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+
+    .status-processing { color: #333; }
+    .status-success { color: green; }
+    .status-error { color: red; }
+  </style>
+</head>
+<body>
+  <h2>Login Chio Feeder</h2>
+  <input id="username" placeholder="Username" required />
+  <input id="password" type="password" placeholder="Password" required />
+  <button id="loginBtn">Login</button>
+  <pre id="status" class="status-processing"></pre>
+
+  <script>
+    const statusEl = document.getElementById('status');
+
+    function setStatus(text, type='processing') {
+      statusEl.textContent = text;
+      statusEl.className = type === 'success' ? 'status-success'
+                         : type === 'error' ? 'status-error'
+                         : 'status-processing';
+    }
+
+    // =====================
+    // Auto logout 4 jam
+    // =====================
+    function checkAutoLogout() {
+      const loginTime = localStorage.getItem('loginTime');
+      if (!loginTime) return;
+      const now = Date.now();
+      const fourHours = 4 * 60 * 60 * 1000; // 4 jam
+      if (now - parseInt(loginTime) > fourHours) {
+        localStorage.removeItem('username');
+        localStorage.removeItem('loginTime');
+        alert('⚠️ Sesi sudah lebih dari 4 jam, silakan login ulang');
+        window.location.href = '/index.html';
+      }
+    }
+
+    checkAutoLogout();
+
+    // =====================
+    // Event login
+    // =====================
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const deviceName = 'WebBrowser';
+
+      if (!username || !password) {
+        setStatus('⚠️ Masukkan username & password', 'error');
+        return;
       }
 
-      h1 {
-        margin-bottom: 20px;
+      setStatus('🔑 Mengecek login...');
+
+      let loginRes;
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ username, password })
+        });
+        loginRes = await res.json();
+      } catch (e) { setStatus('❌ Gagal menghubungi server login', 'error'); return; }
+
+      if (!loginRes.success) {
+        setStatus('❌ Login gagal!', 'error');
+        return;
       }
 
-      button {
-        margin: 10px;
-        padding: 10px 20px;
-        font-size: 16px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        background-color: #007bff;
-        color: white;
-        transition: background-color 0.2s;
+      setStatus('📍 Login berhasil. Menghubungkan ke server...');
+
+      if (!navigator.geolocation) {
+        setStatus('⚠️ Koneksi tidak didukung browser', 'error');
+        return;
       }
 
-      button:hover:not(:disabled) {
-        background-color: #0056b3;
-      }
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        setStatus('📍 Mengirim data ke server...');
 
-      button:disabled {
-        background-color: #ccc;
-        cursor: not-allowed;
-      }
+        const payload = {
+          username,
+          password,
+          deviceName,
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          hostname: window.location.hostname,
+          ts: new Date().toISOString()
+        };
 
-      #statusText {
-        margin-top: 15px;
-        color: #333;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>Dashboard IoT</h1>
-    <button id="rotateBtn">Putar Servo</button>
-    <button id="logoutBtn">Logout</button>
-    <p id="statusText"></p>
-
-    <script>
-      // === AUTH GUARD ===
-      const user = localStorage.getItem("username");
-      if (!user) {
-        alert("🚫 Anda belum login!");
-        window.location.href = "/";
-      }
-
-      const rotateBtn = document.getElementById("rotateBtn");
-      const logoutBtn = document.getElementById("logoutBtn");
-      const statusText = document.getElementById("statusText");
-
-      // === PUTAR SERVO ===
-      rotateBtn.addEventListener("click", async () => {
         try {
-          rotateBtn.disabled = true; // disable tombol langsung
-          statusText.innerText = "🔄 Mengirim perintah ke server...";
+          const res = await fetch('/api/save', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+          });
 
-          const res = await fetch("/api/rotate", { method: "POST" });
-          const data = await res.json();
-
-          if (data.success) {
-            statusText.innerText = "✅ Servo berputar...";
-
-            // === AUTO RESET setelah 10 detik ===
-            setTimeout(async () => {
-              try {
-                await fetch("/api/rotate-reset", { method: "POST" });
-                console.log("🔁 Reset otomatis terkirim.");
-              } catch (e) {
-                console.error("❌ Gagal auto-reset:", e);
-              }
-            }, 10000); // 10 detik
-          } else {
-            statusText.innerText = "❌ Gagal memutar servo.";
+          // cek status server
+          if (res.status === 403) {
+            const errorData = await res.json();
+            setStatus(`❌ ${errorData.error}`, 'error'); // tampilkan peringatan login 3x/hari
+            return;
           }
-        } catch (err) {
-          statusText.innerText = "⚠️ Tidak bisa menghubungi server.";
+
+          const saveRes = await res.json();
+
+          if (saveRes.ok) {
+            localStorage.setItem('username', saveRes.user);
+            localStorage.setItem('loginTime', Date.now());
+            setStatus('✅ Login berhasil!', 'success');
+            setTimeout(() => window.location.href = '/dashboard.html', 1000);
+          } else {
+            setStatus('❌ Gagal menyimpan lokasi', 'error');
+          }
+        } catch(e) {
+          setStatus('❌ Gagal menghubungi server /api/save', 'error');
         }
 
-        // === ENABLE tombol kembali setelah 1 menit ===
-        let countdown = 60;
-        const interval = setInterval(() => {
-          if (countdown > 0) {
-            rotateBtn.textContent = `Putar Servo (${countdown}s)`;
-            countdown--;
-          } else {
-            clearInterval(interval);
-            rotateBtn.disabled = false;
-            rotateBtn.textContent = "Putar Servo";
-            statusText.innerText = "🕐 Siap untuk perintah selanjutnya.";
-          }
-        }, 1000);
-      });
-
-      // === LOGOUT ===
-      logoutBtn.addEventListener("click", async () => {
-        try {
-          await fetch("/api/logout");
-        } catch (e) {}
-        localStorage.removeItem("username");
-        window.location.href = "/";
-      });
-    </script>
-  </body>
+      }, () => setStatus('⚠️ Gagal mendapatkan lokasi', 'error'), 
+      { enableHighAccuracy: true, timeout: 10000 });
+    });
+  </script>
+</body>
 </html>
