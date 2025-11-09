@@ -37,7 +37,12 @@
       color: white;
     }
 
-    #rotateBtn:hover {
+    #rotateBtn:disabled {
+      background-color: #999;
+      cursor: not-allowed;
+    }
+
+    #rotateBtn:hover:not(:disabled) {
       background-color: #218838;
     }
 
@@ -76,15 +81,17 @@
 
   <script>
     const statusEl = document.getElementById("statusText");
+    const rotateBtn = document.getElementById("rotateBtn");
 
     function setStatus(text, type='processing') {
       statusEl.textContent = text;
-      statusEl.className = type === 'success' ? 'status-success'
-                        : type === 'error' ? 'status-error'
-                        : 'status-processing';
+      statusEl.className = 
+        type === 'success' ? 'status-success' :
+        type === 'error' ? 'status-error' :
+        'status-processing';
     }
 
-    // === AUTH GUARD & AUTO LOGOUT 4 JAM ===
+    // === AUTH GUARD ===
     const user = localStorage.getItem("username");
     const loginTime = localStorage.getItem("loginTime");
     if (!user) {
@@ -99,24 +106,64 @@
 
     setStatus(`Selamat datang, ${user}!`, 'success');
 
-    // === TOMBOL PUTAR SERVO ===
-    document.getElementById("rotateBtn").addEventListener("click", async () => {
+    // === FUNGSI AUTO RESET SETELAH 10 DETIK ===
+    async function autoResetAfterDelay() {
+      console.log("⏳ Menunggu 10 detik sebelum auto reset...");
+      await new Promise(r => setTimeout(r, 10000));
+
+      try {
+        const res = await fetch("/api/rotate-reset", { method: "POST" });
+        const data = await res.json();
+        if (data.success) {
+          console.log("✅ Auto reset berhasil!");
+          setStatus("✅ Servo otomatis reset setelah 10 detik.", "success");
+        } else {
+          console.warn("⚠️ Gagal auto reset:", data);
+          setStatus("⚠️ Gagal kirim auto reset.", "error");
+        }
+      } catch (err) {
+        console.error("❌ Gagal kirim auto reset:", err);
+        setStatus("❌ Tidak dapat kirim auto reset.", "error");
+      }
+    }
+
+    // === HANDLE PUTAR SERVO ===
+    rotateBtn.addEventListener("click", async () => {
       setStatus("🔄 Memutar servo...", "processing");
+      rotateBtn.disabled = true;
+
       try {
         const res = await fetch("/api/rotate", { method: "POST" });
         const data = await res.json();
         if (data.success) {
-          setStatus("✅ Servo berputar", "success");
-          setTimeout(() => setStatus("Servo berhenti.", "success"), 3000);
+          console.log("✅ Servo ON, mulai timer auto reset dan cooldown tombol");
+          setStatus("✅ Servo berputar...", "success");
+          autoResetAfterDelay();
         } else {
-          setStatus("❌ Gagal memutar servo", "error");
+          throw new Error("Respon gagal dari server");
         }
-      } catch (e) {
-        setStatus("⚠️ Tidak bisa menghubungi server", "error");
+      } catch (err) {
+        console.error("❌ Gagal memutar servo:", err);
+        setStatus("⚠️ Tidak bisa menghubungi server.", "error");
       }
+
+      // === DISABLE TOMBOL 1 MENIT ===
+      let countdown = 60;
+      rotateBtn.textContent = `Tunggu ${countdown}s`;
+      const interval = setInterval(() => {
+        countdown--;
+        rotateBtn.textContent = `Tunggu ${countdown}s`;
+        if (countdown <= 0) {
+          clearInterval(interval);
+          rotateBtn.disabled = false;
+          rotateBtn.textContent = "Putar Servo";
+          setStatus("✅ Servo siap diputar lagi.", "success");
+          console.log("🟢 Tombol diaktifkan kembali.");
+        }
+      }, 1000);
     });
 
-    // === TOMBOL LOGOUT ===
+    // === LOGOUT ===
     document.getElementById("logoutBtn").addEventListener("click", async () => {
       try { await fetch("/api/logout"); } catch(e){}
       localStorage.removeItem("username");

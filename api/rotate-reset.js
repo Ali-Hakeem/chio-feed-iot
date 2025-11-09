@@ -1,4 +1,4 @@
-import { setServoStatus, getServoStatus } from "./utils.js";
+import { setServoStatus } from "./utils.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -6,17 +6,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const current = await getServoStatus();
-    if (current === false) {
-      console.log("⚙️ Servo sudah OFF, reset diabaikan");
-      return res.status(200).json({ success: true, message: "Already OFF" });
-    }
-
+    console.log("⏳ Auto reset request received...");
     await setServoStatus(false);
-    console.log("🛑 Servo OFF (reset otomatis dari web/ESP32)");
+    console.log("🛑 Servo status reset to false.");
     res.status(200).json({ success: true });
   } catch (err) {
-    console.error("❌ Error reset servo:", err.message);
+    console.error("❌ Error resetting servo:", err.message);
     res.status(500).json({ error: err.message });
   }
 }
