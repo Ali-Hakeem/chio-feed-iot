@@ -55,6 +55,15 @@
       background-color: #c82333;
     }
 
+    #emergencyBtn {
+      background-color: #ff8800;
+      color: white;
+    }
+
+    #emergencyBtn:hover {
+      background-color: #ff6600;
+    }
+
     #statusText {
       margin-top: 20px;
       padding: 10px;
@@ -71,17 +80,39 @@
     .status-processing { color: #333; }
     .status-success { color: green; }
     .status-error { color: red; }
+
+    /* === STATUS SERVO DI POJOK KANAN ATAS === */
+    #servoStatus {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      font-size: 14px;
+      color: #333;
+    }
+
+    #servoStatus.active { border-color: #28a745; color: #28a745; }
+    #servoStatus.inactive { border-color: #dc3545; color: #dc3545; }
   </style>
 </head>
 <body>
+  <div id="servoStatus" class="inactive">Servo: tidak aktif</div>
+
   <h1>Dashboard IoT</h1>
   <button id="rotateBtn">Putar Servo</button>
+  <button id="emergencyBtn">🔴 Tombol Darurat</button>
   <button id="logoutBtn">Logout</button>
   <div id="statusText" class="status-processing"></div>
 
   <script>
     const statusEl = document.getElementById("statusText");
     const rotateBtn = document.getElementById("rotateBtn");
+    const emergencyBtn = document.getElementById("emergencyBtn");
+    const servoStatusEl = document.getElementById("servoStatus");
 
     function setStatus(text, type='processing') {
       statusEl.textContent = text;
@@ -106,17 +137,37 @@
 
     setStatus(`Selamat datang, ${user}!`, 'success');
 
-    // === FUNGSI AUTO RESET SETELAH 10 DETIK ===
+    // === UPDATE STATUS SERVO REALTIME ===
+    async function updateServoStatus() {
+      try {
+        const res = await fetch("/api/status");
+        const data = await res.json();
+        if (data && data.rotate !== undefined) {
+          const active = data.rotate === true;
+          servoStatusEl.textContent = active ? "Servo: aktif ✅" : "Servo: tidak aktif ⚪";
+          servoStatusEl.className = active ? "active" : "inactive";
+        }
+      } catch (err) {
+        console.error("Gagal ambil status servo:", err);
+      }
+    }
+
+    // Jalankan terus tiap 5 detik
+    setInterval(updateServoStatus, 5000);
+    updateServoStatus();
+
+    // === FUNGSI AUTO RESET (15 DETIK) ===
     async function autoResetAfterDelay() {
-      console.log("⏳ Menunggu 10 detik sebelum auto reset...");
-      await new Promise(r => setTimeout(r, 30000));
+      console.log("⏳ Menunggu 15 detik sebelum auto reset...");
+      await new Promise(r => setTimeout(r, 15000));
 
       try {
         const res = await fetch("/api/rotate-reset", { method: "POST" });
         const data = await res.json();
         if (data.success) {
           console.log("✅ Auto reset berhasil!");
-          setStatus("✅ Servo otomatis reset setelah 10 detik.", "success");
+          setStatus("✅ Servo otomatis reset setelah 15 detik.", "success");
+          updateServoStatus();
         } else {
           console.warn("⚠️ Gagal auto reset:", data);
           setStatus("⚠️ Gagal kirim auto reset.", "error");
@@ -138,6 +189,7 @@
         if (data.success) {
           console.log("✅ Servo ON, mulai timer auto reset dan cooldown tombol");
           setStatus("✅ Servo berputar...", "success");
+          updateServoStatus();
           autoResetAfterDelay();
         } else {
           throw new Error("Respon gagal dari server");
@@ -161,6 +213,24 @@
           console.log("🟢 Tombol diaktifkan kembali.");
         }
       }, 1000);
+    });
+
+    // === TOMBOL DARURAT ===
+    emergencyBtn.addEventListener("click", async () => {
+      if (!confirm("⚠️ Apakah kamu yakin ingin menghentikan servo secara paksa?")) return;
+      try {
+        const res = await fetch("/api/rotate-reset", { method: "POST" });
+        const data = await res.json();
+        if (data.success) {
+          setStatus("🛑 Servo dihentikan melalui tombol darurat.", "success");
+          updateServoStatus();
+        } else {
+          setStatus("⚠️ Gagal menghentikan servo.", "error");
+        }
+      } catch (err) {
+        console.error("Gagal tombol darurat:", err);
+        setStatus("❌ Tidak dapat kirim perintah darurat.", "error");
+      }
     });
 
     // === LOGOUT ===
