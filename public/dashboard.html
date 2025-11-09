@@ -109,7 +109,7 @@
     // === FUNGSI AUTO RESET SETELAH 10 DETIK ===
     async function autoResetAfterDelay() {
       console.log("⏳ Menunggu 10 detik sebelum auto reset...");
-      await new Promise(r => setTimeout(r, 10000));
+      await new Promise(r => setTimeout(r, 20000));
 
       try {
         const res = await fetch("/api/rotate-reset", { method: "POST" });
